@@ -1,9 +1,9 @@
 import pandas as pd
-import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 import time
+import re
 import os
 import PyPDF2
 
@@ -54,17 +54,20 @@ stop_words = set(stopwords.words('portuguese'))
 df1 = pd.DataFrame({'Date Created': [], 'Name': [], 'Text': []})
 
 split_pdf_by_keyword('./input/telegramas_1-5_jan.pdf', 'Página 1')
-pdfs_list = [file for file in os.listdir('./split_pdfs/') if file.endswith('.pdf')]
+pdfs_list = [f'./split_pdfs/{file}' for file in os.listdir('./split_pdfs/')]
+
+wnl = WordNetLemmatizer()
 
 for pdf in pdfs_list:
-    path = f'./split_pdfs/{pdf}'
-    wnl = WordNetLemmatizer()
+    extracted_text = extract_text_from_pdf(pdf)
 
-    created_time = time.ctime(os.path.getctime(path))
+
+
+    created_time = time.ctime(os.path.ge  tctime(pdf))
     created_time_obj = time.strptime(created_time)
     time_stamp = time.strftime('%Y-%m-%d %H:%M:%S', created_time_obj)
 
-    tokenized_text = word_tokenize(' '.join(extract_text_from_pdf(path)), language='portuguese')
+    tokenized_text = word_tokenize(' '.join(extract_text_from_pdf(pdf)), language='portuguese')
     extracted_text = ' '.join([wnl.lemmatize(str.lower(word)) for word in tokenized_text if word not in stop_words])
 
     df1.loc[len(df1)] = {'Date Created': created_time, 'Name': pdf, 'Text': extracted_text}
