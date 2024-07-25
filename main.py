@@ -24,7 +24,24 @@ for page_num in range(pdf_reader.numPages):
         pass
 
 def extract_entry(text):
+    # Buscar por padrões
+    doc_type_match = re.search(doc_type_pattern, text)
+    doc_num_match = re.search(doc_num_pattern, text)
+
+    # Extrair dados
+    type = None
+    sender, receiver, date = doc_type_match.group(1, 2, 3)
+    year = date[-4:]
+    msg_number = doc_num_match.group(1)
+
     # Determinar se mensagem for TEL, DET, ou CIT
-    pass
+    if sender == 'SERE' and not receiver:
+        type = 'CIT'
+    elif sender == 'SERE' and receiver:
+        type = 'DET'
+    else:
+        type = 'TEL'
+
+    doc_name = f'{type}_{year}_{msg_number}'
 
 
