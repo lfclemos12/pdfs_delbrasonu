@@ -63,7 +63,7 @@ for pdf in pdfs_list:
 
 
 
-    created_time = time.ctime(os.path.ge  tctime(pdf))
+    created_time = time.ctime(os.path.getctime(pdf))
     created_time_obj = time.strptime(created_time)
     time_stamp = time.strftime('%Y-%m-%d %H:%M:%S', created_time_obj)
 
