@@ -59,35 +59,36 @@ doc_num_pattern = re.compile(r'Nr[.] (\d{5})')
 
 stop_words_pt = set(stopwords.words('portuguese'))
 
-pdf_reader = PyPDF2.PdfFileReader(input('Enter the path of the file:\n'))
+for file in [path for path in os.listdir('./input/') if path.endswith('.pdf')]:
+    pdf_reader = PyPDF2.PdfFileReader(f'./input/{file}')
 
-for page_num in range(pdf_reader.numPages):
-    text = pdf_reader.getPage(page_num).extract_text()
+    for page_num in range(pdf_reader.numPages):
+        text = pdf_reader.getPage(page_num).extract_text()
 
-    if doc_splitter_pattern.match(text): # início da mensagem
-        for page_num_inner in range(page_num+1, pdf_reader.numPages):
-            inner_text = pdf_reader.getPage(page_num_inner).extract_text()
+        if doc_splitter_pattern.match(text): # início da mensagem
+            for page_num_inner in range(page_num+1, pdf_reader.numPages):
+                inner_text = pdf_reader.getPage(page_num_inner).extract_text()
 
-            if not doc_splitter_pattern.match(inner_text):
-                text += inner_text
+                if not doc_splitter_pattern.match(inner_text):
+                    text += inner_text
+                else:
+                    break
+            
+            # Validação de formato documento
+            extracted_entry = extract_entry(text)
+
+            if not extracted_entry:
+                continue # se não for uma página valida, pula para próxima
             else:
-                break
-        
-        # Validação de formato documento
-        extracted_entry = extract_entry(text)
-
-        if not extracted_entry:
-            continue # se não for uma página valida, pula para próxima
-        else:
-            (documt, tipo, remit, dest, dat, texto) = extract_entry(text)
-        
-        data.append(
-            {'documento':documt, 
-             'tipo':tipo, 
-             'remitente':remit, 
-             'destinatário':dest, 
-             'data':dat, 
-             'texto':texto})
+                (documt, tipo, remit, dest, dat, texto) = extract_entry(text)
+            
+            data.append(
+                {'documento':documt, 
+                'tipo':tipo, 
+                'remitente':remit, 
+                'destinatário':dest, 
+                'data':dat, 
+                'texto':texto})
 
 df = pd.DataFrame(data)
 
