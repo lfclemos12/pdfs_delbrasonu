@@ -39,7 +39,7 @@ def extract_entry(text: str):
     body_text = None
 
     if msg_type == 'CIT' or msg_type == 'DET':
-        body_text = text[text.index('//'): text.index('Exteriores')]
+        body_text = text[text.index('//'): text.index('EXTERIORES')]
     else:
         body_text = text[text.index('//'): text.index('Sérgio')]
 
@@ -58,6 +58,8 @@ doc_type_pattern = re.compile(r'[De|Da|Do]+ ([A-Za-z]+)(?: para ([A-Za-z]+))? em
 doc_num_pattern = re.compile(r'Nr[.] (\d{5})')
 
 stop_words_pt = set(stopwords.words('portuguese'))
+
+palavra_chave = input('Por favor, escolha a palavra chave:\n')
 
 for file in [path for path in os.listdir('./input/') if path.endswith('.pdf')]:
     pdf_reader = PyPDF2.PdfFileReader(f'./input/{file}')
@@ -93,28 +95,12 @@ for file in [path for path in os.listdir('./input/') if path.endswith('.pdf')]:
 df = pd.DataFrame(data)
 
 text_series = df['texto'].copy(deep=True)
-text_series = text_series.apply(text_pipeline)
 
-# Criar vetores de frequência
-cv = CountVectorizer(max_df=0.9, min_df=2)
-word_counts = cv.fit_transform(text_series)
-features = cv.get_feature_names_out()
-
-# Aplicar transformador TF-IDF
-transformer = TfidfTransformer()
-transformer.fit(word_counts)
-
-palavras_chaves = [] # Inicializar lista de palavras chaves
+nos_palavra_chave = [] 
 
 for entry in text_series:
-    count_vector = cv.transform([entry])
+    nos_palavra_chave.append(entry.count(palavra_chave))
 
-    tfidf_vector = transformer.transform(count_vector).tocoo()
-    tuples = zip(tfidf_vector.row, tfidf_vector.col, tfidf_vector.data)
-    tfidf_vector = sorted(tuples, key=lambda x: x[2], reverse=True) # classificar por relevância
-
-    palavras_chaves.append(features[tfidf_vector[0][1]]) # adicionar palavra mais relevante
-
-df['palavra_chave'] = pd.Series(palavras_chaves)
+df[f'no_palavra_chave_{palavra_chave}'] = pd.Series(nos_palavra_chave)
 
 df.to_excel('telegramas.xlsx')
