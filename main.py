@@ -1,10 +1,8 @@
 import pandas as pd
 import numpy as np
 from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize
-from nltk.stem import WordNetLemmatizer
-from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
-import time
+from nltk.corpus import words
+import yake
 import string
 import re
 import os
@@ -39,7 +37,7 @@ def extract_entry(text: str):
     body_text = None
 
     if msg_type == 'CIT' or msg_type == 'DET':
-        body_text = text[text.index('//'): text.index('Exteriores')]
+        body_text = text[text.index('//'): text.index('EXTERIORES')]
     else:
         body_text = text[text.index('//'): text.index('Sérgio')]
 
@@ -49,7 +47,7 @@ def extract_entry(text: str):
 def text_pipeline(s: str):
     s = str.lower(s) # Converter em letras minúsculas
     s = str.translate(s, str.maketrans('','', string.punctuation)) # Remover puntuação
-    s = str.join(' ', [word for word in str.split(s) if word not in stop_words_pt]) # Remover stopwords
+    s = str.join(' ', [word for word in str.split(s) if word not in stop_words_pt and word in pt_words]) # Remover stopwords
     return s
 
 data = []
@@ -80,41 +78,47 @@ for file in [path for path in os.listdir('./input/') if path.endswith('.pdf')]:
             if not extracted_entry:
                 continue # se não for uma página valida, pula para próxima
             else:
-                (documt, tipo, remit, dest, dat, texto) = extract_entry(text)
+                (documt, tipo, remet, dest, dat, texto) = extract_entry(text)
             
             data.append(
                 {'documento':documt, 
                 'tipo':tipo, 
-                'remitente':remit, 
+                'remetente':remet, 
                 'destinatário':dest, 
                 'data':dat, 
                 'texto':texto})
 
 df = pd.DataFrame(data)
 
+pt_words = set()
+with open('lexicons/lexporbr_alfa_zip.txt', encoding='utf-8', errors='ignore') as lexicon:
+    lexicon.readline()
+    while line := lexicon.readline():
+        record = line.split(sep='\t')
+        if str.isalpha(record[0]):
+            pt_words.add(record[0])
+
 text_series = df['texto'].copy(deep=True)
 text_series = text_series.apply(text_pipeline)
 
-# Criar vetores de frequência
-cv = CountVectorizer(max_df=0.9, min_df=2)
-word_counts = cv.fit_transform(text_series)
-features = cv.get_feature_names_out()
-
-# Aplicar transformador TF-IDF
-transformer = TfidfTransformer()
-transformer.fit(word_counts)
+# Inicializar extraidor de palavras chaves YAKE!
+max_ngram_size = 2
+num_keywords = 5
+kw_extractor = yake.KeywordExtractor(lan='pt', n=max_ngram_size, top=num_keywords)
 
 palavras_chaves = [] # Inicializar lista de palavras chaves
 
 for entry in text_series:
-    count_vector = cv.transform([entry])
-
-    tfidf_vector = transformer.transform(count_vector).tocoo()
-    tuples = zip(tfidf_vector.row, tfidf_vector.col, tfidf_vector.data)
-    tfidf_vector = sorted(tuples, key=lambda x: x[2], reverse=True) # classificar por relevância
-
-    palavras_chaves.append(features[tfidf_vector[0][1]]) # adicionar palavra mais relevante
+    keywords = kw_extractor.extract_keywords(entry)
+    keywords = sorted(keywords, key=lambda x: x[1])
+    print(keywords)
+    palavras_chaves.append(keywords[0][0]) # adicionar palavra mais relevante
 
 df['palavra_chave'] = pd.Series(palavras_chaves)
 
-df.to_excel('telegramas.xlsx')
+try:
+    os.remove('telegramas.xlsx')
+except:
+    pass
+finally:
+    df.to_excel('telegramas.xlsx')
