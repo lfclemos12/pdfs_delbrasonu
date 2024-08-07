@@ -39,7 +39,7 @@ def extract_entry(text: str):
     body_text = None
 
     if msg_type == 'CIT' or msg_type == 'DET':
-        body_text = text[text.index('//'): text.index('Exteriores')]
+        body_text = text[text.index('//'): text.index('EXTERIORES')]
     else:
         body_text = text[text.index('//'): text.index('Sérgio')]
 
